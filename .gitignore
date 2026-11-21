@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/parsed/
+cache/svgs/
+cache/ellsworth_tools/
+cache/*.html
+submission_details.csv
+cache/parsed/
+cache/svgs/
+cache/ellsworth_tools/
+cache/*.html
+submissions/

@@ -1,0 +1,3 @@
+Sources: 418; candidates including extensions: 4989
+Total score: 24.111836619133; per-source counts: {'band': 388, 'grid': 612}; fallbacks: 0
+Wrote submissions/submission_own.csv; summary: reports/solution_summary.csv; runtime: 473.666s
