@@ -11,6 +11,8 @@ import tempfile
 import time
 
 from sqpack.constructions.band import best_band_configs, build_band
+from sqpack.constructions.corners45 import best_corners45_configs, build_corners45
+from sqpack.constructions.lstrip import best_lstrip_configs, build_lstrip
 from sqpack.hp import Packing, mp
 from sqpack.io import HEADER, read_submission_strings
 from sqpack.metric_official import evaluate_single_puzzle
@@ -35,7 +37,10 @@ class Candidate:
 
 
 def load_sources(nmax=1000, records=None, records_path='cache/records.json',
-                 band_path='cache/band_configs.json', store_path='solutions/best.csv'):
+                 band_path='cache/band_configs.json',
+                 corners45_path='cache/corners45_configs.json',
+                 lstrip_path='cache/lstrip_configs.json',
+                 store_path='solutions/best.csv'):
     """Load candidate metadata, not constructed grid/band packings.
 
     records=None enables cached records automatically; True requires the cache.
@@ -46,6 +51,16 @@ def load_sources(nmax=1000, records=None, records_path='cache/records.json',
     for c, cfg in best_band_configs(nmax, band_path).items():
         sources.append(Source('band', c, cfg.L, f'band({cfg.p},{cfg.q},{cfg.t})',
                               (cfg.p, cfg.q, cfg.t)))
+    if corners45_path is not None:
+        for c, cfg in best_corners45_configs(nmax, corners45_path).items():
+            sources.append(Source('corners45', c, cfg.L,
+                                  f'corners45({cfg.p1},{cfg.p2},{cfg.p3},{cfg.p4},{cfg.u_shift})',
+                                  (cfg.p1, cfg.p2, cfg.p3, cfg.p4, cfg.u_shift)))
+    if lstrip_path is not None:
+        for c, cfg in best_lstrip_configs(nmax, lstrip_path).items():
+            sources.append(Source('lstrip', c, cfg.L,
+                                  f'lstrip({cfg.A},{cfg.B},{cfg.m1},{cfg.m2},{cfg.d1},{cfg.d2})',
+                                  (cfg.A, cfg.B, cfg.m1, cfg.m2, cfg.d1, cfg.d2)))
     path = Path(records_path)
     if records is True or (records is None and path.exists()):
         for c, record in load_records(path).items():
@@ -103,6 +118,10 @@ def _build(base, extensions):
         return Packing((i + half, j + half, 0) for i in range(k) for j in range(k))
     if source.kind == 'band':
         return build_band(source.L, *source.payload)
+    if source.kind == 'corners45':
+        return build_corners45(source.L, *source.payload)
+    if source.kind == 'lstrip':
+        return build_lstrip(source.L, *source.payload)
     return Packing.from_strings(source.payload)
 
 
@@ -168,7 +187,10 @@ def _write_results(results, out, summary_path):
 
 def solve(nmax=1000, out='submission.csv', summary_path='reports/solution_summary.csv',
           jobs=8, eps='1e-20', records=None, records_path='cache/records.json',
-          band_path='cache/band_configs.json', store_path='solutions/best.csv', sources=None):
+          band_path='cache/band_configs.json',
+          corners45_path='cache/corners45_configs.json',
+          lstrip_path='cache/lstrip_configs.json',
+          store_path='solutions/best.csv', sources=None):
     """Certify 1..nmax and write nothing until every puzzle has a valid packing."""
     if not isinstance(nmax, int) or not 1 <= nmax <= 1000:
         raise ValueError('nmax must be an integer in 1..1000')
@@ -179,7 +201,8 @@ def solve(nmax=1000, out='submission.csv', summary_path='reports/solution_summar
         raise ValueError('eps must be finite and nonnegative')
     start = time.perf_counter()
     if sources is None:
-        sources = load_sources(nmax, records, records_path, band_path, store_path)
+        sources = load_sources(nmax, records, records_path, band_path,
+                               corners45_path, lstrip_path, store_path)
     candidates = extension_closure(sources, nmax)
     print(f'Sources: {len(sources)}; candidates including extensions: {len(candidates)}', flush=True)
     initargs = (sources, candidates, mp.nstr(eps, 60))
